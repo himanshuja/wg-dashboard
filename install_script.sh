@@ -36,7 +36,7 @@ elif [[ "$(lsb_release -is)" == "Ubuntu" ]]; then
 	# needed for add-apt-repository
 	apt-get install -y software-properties-common
 	# add wireguard repository to apt
-	add-apt-repository -y ppa:wireguard/wireguard
+	# add-apt-repository -y ppa:wireguard/wireguard
 	# install wireguard
 	apt-get install -y wireguard
 	# install linux kernel headers
@@ -116,57 +116,6 @@ ufw --force enable
 ufw allow 58210
 # enable port 53 in firewall for dns
 ufw allow in on wg0 to any port 53
-
-# make and enter coredns folder
-mkdir -p /etc/coredns
-cd /etc/coredns
-if [[ "$(lsb_release -is)" == "Raspbian" ]]; then
-	# download coredns
-	curl -L https://github.com/coredns/coredns/releases/download/v1.5.1/coredns_1.5.1_linux_arm.tgz --output coredns.tgz
-elif [[ "$(lsb_release -is)" == "Ubuntu" ]]; then
-	# download coredns
-	curl -L https://github.com/coredns/coredns/releases/download/v1.5.1/coredns_1.5.1_linux_amd64.tgz --output coredns.tgz
-elif [[ "$(lsb_release -is)" == "Debian" ]]; then
-	# download coredns
-	curl -L https://github.com/coredns/coredns/releases/download/v1.5.1/coredns_1.5.1_linux_amd64.tgz --output coredns.tgz
-fi
-# unzip and delete tar
-tar -xzf coredns.tgz
-rm -f coredns.tgz
-# move coredns to correct directory
-mv coredns /usr/bin/coredns
-# write default coredns config
-echo ". {
-	forward . tls://1.1.1.1 {
-		tls_servername tls.cloudflare-dns.com
-		health_check 10s
-	}
-
-	cache
-	errors
-}" > /etc/coredns/Corefile
-# write autostart config
-echo "
-[Unit]
-Description=CoreDNS DNS Server
-Documentation=https://coredns.io/manual/toc/
-After=network.target
-
-[Service]
-LimitNOFILE=8192
-ExecStart=/usr/bin/coredns -conf /etc/coredns/Corefile -cpu 10%
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target" > /etc/systemd/system/coredns.service
-# disable systemd-resolved from startup
-systemctl disable systemd-resolved
-# stop systemd-resolved service
-systemctl stop systemd-resolved
-# enable coredns on system start
-systemctl enable coredns
-# start coredns
-systemctl start coredns
 
 
 echo ""
