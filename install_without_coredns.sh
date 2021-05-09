@@ -8,60 +8,6 @@ if [[ "$EUID" -ne 0 ]]; then
 	exit
 fi
 
-# i = distributor id, s = short, gives us name of the os ("Ubuntu", "Raspbian", ...)
-if [[ "$(lsb_release -is)" == "Raspbian" ]]; then
-	# needed for new kernel
-	apt-get update -y
-	apt-get upgrade -y
-
-	# install required build tools
-	apt-get install -y raspberrypi-kernel-headers libmnl-dev libelf-dev build-essential ufw
-	cd /opt
-	# get the latest stable snapshot
-	curl -L https://git.zx2c4.com/WireGuard/snapshot/WireGuard-0.0.20190601.tar.xz --output WireGuard.tar.xz
-	# create directory
-	mkdir -p WireGuard
-	# unzip tarball
-	tar xf WireGuard.tar.xz -C WireGuard --strip-components=1
-	# delete tarball
-	rm -f WireGuard.tar.xz
-	# go into source folder
-	cd WireGuard/src
-	# build and install wireguard
-	make
-	make install
-	# go back to home folder
-	cd ~
-elif [[ "$(lsb_release -is)" == "Ubuntu" ]]; then
-	# needed for add-apt-repository
-	apt-get install -y software-properties-common
-	# add wireguard repository to apt
-	add-apt-repository -y ppa:wireguard/wireguard
-	# install wireguard
-	apt-get install -y wireguard
-	# install linux kernel headers
-	apt-get install -y linux-headers-$(uname -r)
-elif [[ "$(lsb_release -is)" == "Debian" ]]; then
-	if [[ "$(lsb_release -rs)" -ge "10" ]]; then
-		# add unstable list
-		echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
-		printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
-		# update repository
-		apt update
-		# install linux kernel headers
-		apt-get install -y "linux-headers-$(uname -r)" ufw
-		# install wireguard
-		apt install -y wireguard
-		# update again (needed because of the linux kernel headers)
-		apt-get update && apt-get upgrade
-	else
-		echo "Sorry, your operating system is not supported"
-		exit
-	fi
-else
-	echo "Sorry, your operating system is not supported"
-	exit
-fi
 
 # enable ipv4 packet forwarding
 sysctl -w net.ipv4.ip_forward=1
